@@ -363,11 +363,16 @@ _add_upprotect_file()
 start_service() {
 	# Reading config
 	config_load "${CONFIGURATION}"
-	config_get workdir $CONFIGURATION workdir "/etc/AdGuardHome"
-	case "$workdir" in
-		/mnt/sda1|/mnt/sda1/*)
-			grep -q " /mnt/sda1 " /proc/mounts || { logger -t AdGuardHome "USB storage is not mounted; start skipped"; return 1; }
-			;;
+	local selected_workdir selected_mount
+	config_get selected_workdir $CONFIGURATION workdir "/etc/AdGuardHome"
+	case "$selected_workdir" in
+		/mnt/*)
+			selected_mount="/mnt/$(printf '%s' "${selected_workdir#/mnt/}" | cut -d/ -f1)"
+			grep -Fq " $selected_mount " /proc/mounts || {
+				logger -t AdGuardHome "$selected_mount is not mounted; start skipped"
+				return 1
+			}
+		;;
 	esac
 	# update password
 	config_get username $CONFIGURATION username ""
